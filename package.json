@@ -1,0 +1,16 @@
+{
+  "name": "LBPL3",
+  "version": "0.0.1",
+  "description": "LBPL3",
+  "main": "index.js",
+  "author": "brecert",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node ./src/index.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^7.0.1",
+    "typescript": "^3.2.2"
+  }
+}

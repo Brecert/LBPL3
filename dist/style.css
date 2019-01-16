@@ -1,0 +1,113 @@
+body {
+	width: 100vw;
+	height: 100vh;
+}
+
+button {
+  border: none;
+  color: #fff;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-bottom: solid 5px #333;
+}
+
+button:active {
+  border-bottom: solid 1px #333;
+  transform: translateY(4px);
+}
+
+.buttons {
+  position: absolute;
+  left: 50vw;
+  transform: translateX(-50%);
+}
+
+.buttons * {
+  background: #8f3843;
+}
+
+body.dark {
+	background: #333546;
+	color: #acc;
+}
+.light tspan {
+	fill: #546;
+}
+
+body.light {
+	background: #dcdacc;
+	color: #546;
+}
+.dark tspan {
+	fill: #dedede;
+}
+
+.app {
+	width: 100%;
+	height: 100%;
+
+	display: flex;
+	justify-content:center;
+	align-items:center;
+
+	/* perspective: 233px; */
+
+	/* perspective-origin: 150% 150%; */
+	/* transform: rotateX(45deg) translateZ(0px); */
+
+	/* perspective: 250px;  */
+	/* transform: rotateZ(45deg); */
+}
+
+.canvas, .svg {
+	position: absolute;
+	width: 85vmin;
+	height: 85vmin;
+}
+
+.canvas {
+	pointer-events: none;
+	box-shadow: inset 0 0px 10px 1px #333;
+}
+
+.dark .canvas {
+	background: #232533;
+}
+
+.light .canvas {
+	background: #cccab9;
+}
+
+/* SVG */
+
+/* .chip {
+	transform: translateZ(-200px)
+} */
+
+/* .chip.hover {
+	display:  none;
+} */
+
+.microchip {
+	fill: #333;
+	stroke: #FA0;
+	stroke-width: 2.5;
+	/* filter: drop-shadow(0 4px 0 #333); */
+}
+
+.chip:active .microchip {
+	stroke: #9E1;
+}
+
+.input {
+	fill: #7B7;
+}
+
+.output {
+	fill: #AAA;
+}
