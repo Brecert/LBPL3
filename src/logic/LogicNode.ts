@@ -88,7 +88,7 @@ export class LogicNode extends Emitter {
       this.outputs[id] = value;
     }
 
-    if (id !== undefined) {
+    if (id !== undefined && this.connections.length > 0) {
       for(let connection of this.connections[id]) {
         this.chip
             .findNode(connection.id)
@@ -107,7 +107,7 @@ export class LogicNode extends Emitter {
   }
 
   emit<I, V, T>(id: number, value?: number, data?: T) {
-  	this.outputs[id] = this.inputs[id]
+  	this.outputs[id] = Object.assign({}, this.inputs[id])
   	
   	if (value !== undefined) {
   		this.outputs[id].value = value

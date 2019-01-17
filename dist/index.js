@@ -7,6 +7,39 @@ import { Reverse } from './src/logic/nodes/reverse.js';
 import { StringNode } from './src/logic/nodes/string.js';
 import { LogicNode } from './src/logic/LogicNode.js'
 
+// dynamic "static" methods...
+const LeafMouse = function(target = window) {
+	let event = {}
+
+	let moveHandler = (e) => {
+		event = e
+	}
+
+	target.addEventListener('mousemove', moveHandler)
+
+	Object.defineProperties(LeafMouse, {
+		x: {
+			get() { return event.x }
+		},
+		y: {
+			get() { return event.y }
+		},
+		px: {
+			get() { return event.pageX }
+		},
+		py: {
+			get() { return event.pageY }
+		},
+		sx: {
+			get() { return event.screenX }
+		},
+		sy: {
+			get() { return event.screenY }
+		}
+	})
+}
+LeafMouse()
+
 // logic
 function connect(initial_node, output_id = 0) {
     return { to: (to_node, input_id = 0) => {
@@ -16,6 +49,7 @@ function connect(initial_node, output_id = 0) {
             if (initial_node.connections[output_id] === undefined) {
                 initial_node.connections[output_id] = [];
             }
+
             initial_node.connections[output_id].push({ id: to_node.id, input: input_id });
         } };
 }
@@ -59,6 +93,48 @@ function calcCenter(number, distance, totalAmount, padding = 10) {
   return center;
 }
 
+function renderWire(x1, y1, x2, y2, value = 0, rotation = 0) {
+
+	let gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+
+	let color = {from: '#455', to: '#544'}
+
+	if(value > 0) {
+		color.from = '#5c4'
+		color.to = '#6c7'
+
+		// color.from.at(output.value / 100)
+		// color.to.at(output.value / 100)
+	} 
+	else if (value < 0) {
+		color.from = '#c45'
+		color.to = '#c76'
+	}
+
+	// gradient.addColorStop(Math.abs(Math.cos((rotation / 1100) + 0)), '#f33')
+	gradient.addColorStop(0, color.from)
+	gradient.addColorStop(1, color.to)
+	ctx.beginPath()
+	ctx.moveTo(x1, y1)
+	ctx.lineTo(x2, y2)
+	ctx.closePath()
+
+	ctx.globalAlpha = 0.95;
+
+	ctx.setLineDash([])
+	ctx.strokeStyle = gradient
+	ctx.lineWidth = 7
+	ctx.stroke()
+
+	ctx.globalAlpha = 0.7;
+
+	ctx.setLineDash([5])
+	ctx.lineDashOffset = (rotation / (100 - 0 /* output.value */))
+	ctx.strokeStyle = '#7e7'
+	ctx.lineWidth = 2.5
+	ctx.stroke()
+}
+
 function renderAllConnections(rotation) {
 	ctx.clearRect(0, 0, 1000, 1000)
 	for(let node of chip.nodeList) {
@@ -66,18 +142,76 @@ function renderAllConnections(rotation) {
 	}
 }
 
+function renderConnectingTo() {
+
+	let node = global.connecting.node
+	let output = node.display.outputs[global.connecting.output]
+	let output_pos = {x: output.rbox(svg).x2, y: output.rbox(svg).cy}
+
+	let {x, y} = svg.point(LeafMouse.px, LeafMouse.py)
+
+	// console.log(output_pos.x, output_pos.y, LeafMouse.px, LeafMouse.py)
+
+	renderWire(output_pos.x, output_pos.y, x, y)
+}
+
 let start = null
+let last_t = 0
 function animationLoop(timestamp) {
   if (!start) start = timestamp;
   var progress = timestamp - start;
 
-	renderAllConnections(timestamp)
+  let t0 = performance.now();
+
+  if(last_t > 25) {
+  	  if(progress > last_t * 10000) {
+	  	start = timestamp
+			renderAllConnections(timestamp);
+ 		}
+  } else {
+  	renderAllConnections(timestamp)
+  }
+
+  if(global.connecting.active) {
+  	renderConnectingTo()
+  }
+
+  // if(global.connecting.active && !global.connecting.listening) {
+  // 	global.connecting.listening = true
+
+  // 	SVG.on(window, 'mousemove', renderConnectingTo)
+  // }
+
+  // if(!global.connecting.active && global.connecting.listening) {
+  // 	global.connecting.listening = false
+
+  // 	SVG.off(window, 'mousemove', renderConnectingTo)
+  // }
+
+ 	let t1 = performance.now();
+
+ 	// ctx.textAlign = 'left'
+ 	// ctx.textBaseline = 'top'
+ 	// ctx.fillStyle = 'white'
+ 	// ctx.font = '48px serif';
+ 	// ctx.fillText(`${last_t}ms ${progress}`, 15, 15)
+
+ 	last_t = t1 - t0
 
   window.requestAnimationFrame(animationLoop);
 }
 // temp
 function calcAngleDegrees(x, y) {
   return Math.atan2(y, x) * 180 / Math.PI;
+}
+
+const global = {
+	connecting: {
+		active: false,
+		listening: false,
+		node: 0,
+		output: 0
+	}
 }
 
 const VisualChip = {
@@ -93,6 +227,14 @@ const VisualChip = {
 			let y_offset = calcCenter(i, 0, output_amount, chip.height() / output_amount)
 			let output = chip.polygon('0, 0 0, 50 50, 50').y(y_offset).x(32).rotate(45).scale(0.6, 0.3).addClass('output')
 
+			output.on('click', event => {
+				global.connecting = {
+					active: true,
+					node: this,
+					output: i
+				}
+			})
+
 			this.display.outputs[i] = output
 		}	
 	},
@@ -102,6 +244,23 @@ const VisualChip = {
 		for (let i = input_amount - 1; i >= 0; i--) {
 			let y_offset = calcCenter(i, 44, input_amount, chip.height() / input_amount)
 			let input = chip.rect(25, 15).x(-5).y( y_offset - (15 / 4) ).addClass('input')
+
+			input.on('click', event => {
+				if(global.connecting.active) {
+					connect(global.connecting.node).to(this)
+
+					global.connecting.active = false
+				}
+			})
+
+			input.on('mouseover', event => {
+				input.addClass('hover')
+
+			})
+
+			input.on('mouseout', event => {
+				input.removeClass('hover')
+			})
 
 			this.display.inputs[i] = input
 		}
@@ -117,61 +276,13 @@ const VisualChip = {
 			let output = this.outputs[output_id]
 
 			for (let connection of this.connections[output_id]) {
-				// console.log(this.id, output_id, connection, this.chip.findNode(connection.id).display)
 				let connecting_chip = this.chip.findNode(connection.id)
-				// let wire = lines.line(chip.rbox().x, chip.rbox.x, connecting_chip.rbox().cx, connecting_chip.rbox().cy).stroke({ color: '#f06', width: 10, linecap: 'round' })
-				// let wire = lines.line(
-				// 		chip.rbox(svg).cx,
-				// 		chip.rbox(canvas).cy,
-				// 		connecting_chip.rbox(svg).cx,
-				// 		connecting_chip.rbox(svg).cy
-				// ).stroke({ color: '#f06', width: 10, linecap: 'round' })
-
-				// ctx.clearRect(0, 0, 1000, 1000)
-				const gradient = ctx.createLinearGradient(
-					this.display.outputs[output_id].rbox(svg).x2,
-					this.display.outputs[output_id].rbox(svg).y2,
-					connecting_chip.display.inputs[connection.input].rbox(svg).cx,
-					connecting_chip.display.inputs[connection.input].rbox(svg).cy
-				);
-
-				let color = '#455'
-				let color2 = '#544'
-
-				if(output.value > 0) {
-					color = '#5c4'
-					color2 = '#6c7'
-				} 
-				else if (output.value < 0) {
-
-				}
 
 				let output_pos = {x: this.display.outputs[output_id].rbox(svg).x2, y: this.display.outputs[output_id].rbox(svg).cy}
 				let input_pos = {x: connecting_chip.display.inputs[connection.input].rbox(svg).x, y: connecting_chip.display.inputs[connection.input].rbox(svg).cy}
 				let center_pos = {x: output_pos.x + (input_pos.x - output_pos.x) / 2, y: output_pos.y + (input_pos.y - output_pos.y) / 2}
 
-				// gradient.addColorStop(Math.abs(Math.cos((rotation / 1100) + 0)), '#f33')
-				gradient.addColorStop(0, color)
-				gradient.addColorStop(1, color2)
-				ctx.beginPath()
-				ctx.moveTo(output_pos.x, output_pos.y)
-				ctx.lineTo(input_pos.x, input_pos.y)
-				ctx.closePath()
-
-				ctx.globalAlpha = 0.95;
-
-				ctx.setLineDash([])
-				ctx.strokeStyle = gradient
-				ctx.lineWidth = 7
-				ctx.stroke()
-
-				ctx.globalAlpha = 0.7;
-
-				ctx.setLineDash([5])
-				ctx.lineDashOffset = (rotation / (100 - output.value))
-				ctx.strokeStyle = '#7e7'
-				ctx.lineWidth = 2.5
-				ctx.stroke()
+				renderWire(output_pos.x, output_pos.y, input_pos.x, input_pos.y, output.value, rotation)
 
 				// draw output value
 				ctx.save()
@@ -282,4 +393,14 @@ start_button.addEventListener('click', event => {
 			node.updateOutputs()
 		}
 	}
+})
+
+let add_button = document.getElementById('add')
+add_button.addEventListener('click', event => {
+	let node = new Not()
+	add(node).to(chip)
+	node.createVisuals()
+	node.displayConnections()
+
+	// connect(node).to(chip.nodeList[1])
 })

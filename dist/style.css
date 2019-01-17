@@ -31,6 +31,17 @@ button:active {
   background: #8f3843;
 }
 
+.logic-bar {
+	position: absolute;
+	left: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.logic-bar * {
+	background: #8f3843;
+}
+
 body.dark {
 	background: #333546;
 	color: #acc;
@@ -72,7 +83,7 @@ body.light {
 
 .canvas {
 	pointer-events: none;
-	box-shadow: inset 0 0px 10px 1px #333;
+	/* box-shadow: inset 0 0px 10px 1px #333; */
 }
 
 .dark .canvas {
@@ -110,4 +121,8 @@ body.light {
 
 .output {
 	fill: #AAA;
+}
+
+.output:active {
+	fill: red;
 }
